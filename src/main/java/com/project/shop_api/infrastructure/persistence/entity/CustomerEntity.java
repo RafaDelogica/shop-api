@@ -12,7 +12,7 @@ import java.util.List;
         @Index(name = "idx_customer_email", columnList = "email", unique = true)
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(of = "id")
+//@EqualsAndHashCode(of = "id")
 public class CustomerEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

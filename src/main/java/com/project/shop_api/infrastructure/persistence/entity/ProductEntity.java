@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_product_name", columnList = "name")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(of = "id")
+//@EqualsAndHashCode(of = "id")
 public class ProductEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

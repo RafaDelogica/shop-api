@@ -8,7 +8,7 @@ import lombok.*;
         @Index(name = "idx_address_customer", columnList = "customer_id")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(of = "id")
+//@EqualsAndHashCode(of = "id")
 public class AddressEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

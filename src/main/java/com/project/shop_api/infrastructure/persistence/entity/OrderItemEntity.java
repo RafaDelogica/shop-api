@@ -11,7 +11,7 @@ import java.math.BigDecimal;
         @Index(name = "idx_orderitem_product", columnList = "product_id")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(of = "id")
+//@EqualsAndHashCode(of = "id")
 public class OrderItemEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

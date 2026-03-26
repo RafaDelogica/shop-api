@@ -16,7 +16,7 @@ import com.project.shop_api.domain.enums.OrderStatus;
         @Index(name = "idx_order_date", columnList = "orderDate")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(of = "id")
+//@EqualsAndHashCode(of = "id")
 public class OrderEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
