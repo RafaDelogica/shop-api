@@ -1,6 +1,5 @@
 package com.project.shop_api.domain.repository;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -16,4 +15,6 @@ public interface ProductRepository {
 	Product save(Product product);
 	
 	void deleteById(Long id);
+	
+	boolean existsBySku(String sku);
 }

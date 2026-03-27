@@ -1,6 +1,5 @@
 package com.project.shop_api.infrastructure.persistence.repository.impl;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -59,6 +58,11 @@ public class ProductRepositoryImpl implements ProductRepository{
 		if (active != null) spec = spec.and(ProductSpecification.activeIs(active));
 		
 		return jpaRepository.findAll(spec, pageable).map(entityMapper::toDomain);
+	}
+
+	@Override
+	public boolean existsBySku(String sku) {
+		return jpaRepository.existsBySku(sku);
 	}
 
 }

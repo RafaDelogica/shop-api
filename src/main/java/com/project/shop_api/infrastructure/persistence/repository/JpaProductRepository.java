@@ -7,4 +7,5 @@ import com.project.shop_api.infrastructure.persistence.entity.ProductEntity;
 
 public interface JpaProductRepository extends JpaRepository<ProductEntity, Long>, JpaSpecificationExecutor<ProductEntity>{
 
+	boolean existsBySku(String sku);
 }
