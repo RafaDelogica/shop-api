@@ -69,5 +69,17 @@ class ProductDtoMapperTest {
         assertEquals(12, res.getStock());
         assertTrue(res.isActive());
     }
+    
+    @Test
+    void toDomain_shouldReturnNull_whenRequestIsNull() {
+        Product product = mapper.toDomain(null);
+        assertNull(product);
+    }
+    
+    @Test
+    void toResponse_shouldReturnNull_whenDomainIsNull() {
+        ProductResponse response = mapper.toResponse(null);
+        assertNull(response);
+    }
 }
 
