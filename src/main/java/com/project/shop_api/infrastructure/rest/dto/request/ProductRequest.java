@@ -16,7 +16,7 @@ public class ProductRequest {
 	@NotBlank(message = "Sku must be completed")
     private String sku;
 	
-	@NotBlank(message = "Sku must be completed")
+	@NotBlank(message = "Name must be completed")
     private String name;
 	
 	@Size(max = 2000, message = "The description must not exceed 2,000 characters")

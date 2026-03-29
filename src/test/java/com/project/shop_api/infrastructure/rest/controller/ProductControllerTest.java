@@ -90,6 +90,7 @@ class ProductControllerTest {
         req.setSku("DUPL-001");
         req.setName("Laptop");
         req.setPrice(BigDecimal.TEN);
+        req.setStock(10);
 
         Product domain = Product.builder()
                 .sku("DUPL-001")
@@ -231,6 +232,7 @@ class ProductControllerTest {
         req.setSku("ABC-100");
         req.setName("Updated");
         req.setPrice(BigDecimal.TEN);
+        req.setStock(10); 
 
         when(mapper.toDomain(any())).thenReturn(Product.builder().build());
         when(service.update(eq(99L), any()))
@@ -251,12 +253,15 @@ class ProductControllerTest {
     void update_shouldReturnConflict_whenSkuExists() throws Exception {
 
         ProductRequest req = new ProductRequest();
-        req.setSku("DUPL-001");
-        req.setName("Laptop");
+        req.setSku("DUPL-001");     // Sku duplicated
+        req.setName("Laptop");      
         req.setPrice(BigDecimal.TEN);
+        req.setStock(10);           
 
-        when(mapper.toDomain(any())).thenReturn(Product.builder().build());
-        when(service.update(eq(1L), any()))
+        Product domain = Product.builder().build();
+
+        when(mapper.toDomain(any())).thenReturn(domain);
+        when(service.update(eq(1L), eq(domain)))
                 .thenThrow(new ConflictException("SKU duplicado"));
 
         mockMvc.perform(put("/api/products/1")
@@ -270,22 +275,23 @@ class ProductControllerTest {
     // ===============================================================
     // UPDATE /api/products VALIDATION ERROR
     // ===============================================================
-//    @Test
-//    void update_shouldReturnValidationError_whenDtoInvalid() throws Exception {
-//
-//        ProductRequest req = new ProductRequest();
-//        req.setSku("ABC-100");
-//        req.setName("");                     // @NotBlank -> error
-//        req.setPrice(BigDecimal.valueOf(-1)); // @DecimalMin -> error
-//
-//        mockMvc.perform(put("/api/products/1")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(objectMapper.writeValueAsString(req)))
-//                .andExpect(status().isBadRequest())
-//                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-//                .andExpect(jsonPath("$.details").isArray())
-//                .andExpect(jsonPath("$.details.length()").value(2)); // name + price
-//    }
+    @Test
+    void update_shouldReturnValidationError_whenDtoInvalid() throws Exception {
+
+        ProductRequest req = new ProductRequest();
+        req.setSku("ABC-100");  // ✔ válido, no debe fallar
+        req.setStock(10);       // ✔ válido
+        req.setName(null);      // ❌ error
+        req.setPrice(null);     // ❌ error
+
+        mockMvc.perform(put("/api/products/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.details").isArray())
+                .andExpect(jsonPath("$.details.length()").value(2)); // name + price
+    }
 
 }
 
