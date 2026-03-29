@@ -15,7 +15,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AddressRepositoryImpl implements AddressRepository {
 
-    private final JpaAddressRepository jpa;
+
+	private final JpaAddressRepository jpa;
     private final AddressEntityMapper mapper;
 
     @Override
@@ -27,4 +28,15 @@ public class AddressRepositoryImpl implements AddressRepository {
     public Optional<Address> findById(Long id) {
         return jpa.findById(id).map(mapper::toModel);
     }
+
+    @Override
+    public long countByCustomerId(Long customerId) {
+        return jpa.countByCustomerId(customerId);
+    }
+
+    @Override
+    public boolean existsByIdAndCustomerId(Long addressId, Long customerId) {
+        return jpa.existsByIdAndCustomerId(addressId, customerId);
+    }
+
 }

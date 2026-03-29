@@ -8,5 +8,9 @@ public interface AddressRepository {
 
 	Address save(Address address);
 
-	Optional<Address> findById(Long id);
+    Optional<Address> findById(Long id);
+
+    long countByCustomerId(Long customerId);
+
+    boolean existsByIdAndCustomerId(Long addressId, Long customerId);
 }
