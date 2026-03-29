@@ -26,7 +26,6 @@ public class ProductRequest {
 	@DecimalMin(value = "0.01", message = "The price must be bigger than 0")
     private BigDecimal price;
 	
-
 	@NotNull(message = "Stock must be completed")
     @Min(value = 0, message = "Stock must not be negative")
     private Integer stock;
