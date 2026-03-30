@@ -21,12 +21,9 @@ public class Order {
     private Long id;
     private LocalDateTime orderDate;
     private OrderStatus status;
-
     private Long customerId;
     private Long shippingAddressId;
-
     private BigDecimal total;
-
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 }
