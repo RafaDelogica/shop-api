@@ -20,79 +20,72 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class OrderRepositoryImpl implements OrderRepository {
 
-    private final JpaOrderRepository orderJpa;
-    private final JpaCustomerRepository customerJpa;
-    private final JpaAddressRepository addressJpa;
-    private final JpaProductRepository productJpa;
-    private final OrderEntityMapper orderMapper;
+	private final JpaOrderRepository orderJpa;
+	private final JpaCustomerRepository customerJpa;
+	private final JpaAddressRepository addressJpa;
+	private final JpaProductRepository productJpa;
+	private final OrderEntityMapper orderMapper;
 
-    @Override
-    public Order save(Order order) {
+	@Override
+	public Order save(Order order) {
 
-        OrderEntity entity = orderMapper.toEntity(order);
+		OrderEntity entity = orderMapper.toEntity(order);
 
-        // ASIGN RELATIONS
-        CustomerEntity customer = customerJpa.getReferenceById(order.getCustomerId());
-        entity.setCustomer(customer);
+		// ASIGN RELATIONS
+		CustomerEntity customer = customerJpa.getReferenceById(order.getCustomerId());
+		entity.setCustomer(customer);
 
-        AddressEntity address = addressJpa.getReferenceById(order.getShippingAddressId());
-        entity.setShippingAddress(address);
+		AddressEntity address = addressJpa.getReferenceById(order.getShippingAddressId());
+		entity.setShippingAddress(address);
 
-        // ITEMS → PRODUCT + ORDER
-        if (entity.getItems() != null) {
-            for (OrderItemEntity item : entity.getItems()) {
+		// ITEMS → PRODUCT + ORDER
+		if (entity.getItems() != null) {
+			for (OrderItemEntity itemEntity : entity.getItems()) {
 
-                ProductEntity product = productJpa.getReferenceById(item.getProduct().getId());
-                item.setProduct(product);
+				ProductEntity product = productJpa.getReferenceById(itemEntity.getProductId());
+				itemEntity.setProduct(product);
+				itemEntity.setOrder(entity);
+			}
+		}
 
-                item.setOrder(entity); // bidirectional relation
-            }
-        }
+		OrderEntity saved = orderJpa.save(entity);
 
-        OrderEntity saved = orderJpa.save(entity);
+		return orderMapper.toModel(saved);
+	}
 
-        return orderMapper.toModel(saved);
-    }
+	@Override
+	public Optional<Order> findById(Long id) {
+		return orderJpa.findById(id).map(orderMapper::toModel);
+	}
 
-    @Override
-    public Optional<Order> findById(Long id) {
-        return orderJpa.findById(id).map(orderMapper::toModel);
-    }
+	@Override
+	public Page<Order> findAll(Long customerId, String fromDate, String toDate, String status, int page, int size) {
 
-    @Override
-    public Page<Order> findAll(
-            Long customerId,
-            String fromDate,
-            String toDate,
-            String status,
-            int page, int size
-    ) {
+		Specification<OrderEntity> spec = Specification.where(null);
 
-        Specification<OrderEntity> spec = Specification.where(null);
+		if (customerId != null) {
+			spec = spec.and(OrderSpecification.customerIdEquals(customerId));
+		}
 
-        if (customerId != null) {
-            spec = spec.and(OrderSpecification.customerIdEquals(customerId));
-        }
+		if (fromDate != null) {
+			spec = spec.and(OrderSpecification.fromDate(LocalDateTime.parse(fromDate)));
+		}
 
-        if (fromDate != null) {
-            spec = spec.and(OrderSpecification.fromDate(LocalDateTime.parse(fromDate)));
-        }
+		if (toDate != null) {
+			spec = spec.and(OrderSpecification.toDate(LocalDateTime.parse(toDate)));
+		}
 
-        if (toDate != null) {
-            spec = spec.and(OrderSpecification.toDate(LocalDateTime.parse(toDate)));
-        }
+		if (status != null) {
+			spec = spec.and(OrderSpecification.statusEquals(status));
+		}
 
-        if (status != null) {
-            spec = spec.and(OrderSpecification.statusEquals(status));
-        }
+		Page<OrderEntity> result = orderJpa.findAll(spec, PageRequest.of(page, size));
 
-        Page<OrderEntity> result = orderJpa.findAll(spec, PageRequest.of(page, size));
+		return result.map(orderMapper::toModel);
+	}
 
-        return result.map(orderMapper::toModel);
-    }
-
-    @Override
-    public void deleteById(Long id) {
-        orderJpa.deleteById(id);
-    }
+	@Override
+	public void deleteById(Long id) {
+		orderJpa.deleteById(id);
+	}
 }

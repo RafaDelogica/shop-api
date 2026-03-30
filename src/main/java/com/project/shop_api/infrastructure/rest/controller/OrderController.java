@@ -30,10 +30,7 @@ public class OrderController {
 
         log.info("POST /api/orders - Creating order");
 
-        var domain = mapper.toDomain(request);
-        var created = service.create(domain);
-
-        return ResponseEntity.ok(mapper.toResponse(created));
+        return ResponseEntity.ok(mapper.toResponse(service.create(mapper.toDomain(request))));
     }
 
     @GetMapping
@@ -56,8 +53,7 @@ public class OrderController {
 
         log.info("GET /api/orders/{} - Detail", id);
 
-        var order = service.findById(id);
-        return ResponseEntity.ok(mapper.toResponse(order));
+        return ResponseEntity.ok(mapper.toResponse(service.findById(id)));
     }
 
     @PutMapping("/{id}/status")
@@ -67,7 +63,6 @@ public class OrderController {
 
         log.info("PUT /api/orders/{}/status - Changing status to {}", id, request.getStatus());
 
-        var updated = service.updateStatus(id, request.getStatus());
-        return ResponseEntity.ok(mapper.toResponse(updated));
+        return ResponseEntity.ok(mapper.toResponse(service.updateStatus(id, request.getStatus())));
     }
 }

@@ -31,171 +31,171 @@ import java.time.LocalDateTime;
 @Transactional
 public class OrderServiceImpl implements OrderService {
 
-    private final OrderRepository orderRepository;
-    private final CustomerRepository customerRepository;
-    private final AddressRepository addressRepository;
-    private final ProductRepository productRepository;
+	private final OrderRepository orderRepository;
+	private final CustomerRepository customerRepository;
+	private final AddressRepository addressRepository;
+	private final ProductRepository productRepository;
 
-    
-    @Override
-    public Order create(Order order) {
+	@Override
+	public Order create(Order order) {
 
-        log.info("Creating order for customerId={}", order.getCustomerId());
+		log.info("Creating order for customerId={}", order.getCustomerId());
 
-        // 1.Validate Customer
-        Customer customer = customerRepository.findById(order.getCustomerId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Customer not found with id " + order.getCustomerId()));
+		// 1.Validate Customer
+		Customer customer = customerRepository.findById(order.getCustomerId()).orElseThrow(
+				() -> new ResourceNotFoundException("Customer not found with id " + order.getCustomerId()));
 
-        // 2.Validate Address
-        Address address = addressRepository.findById(order.getShippingAddressId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Shipping address not found with id " + order.getShippingAddressId()));
+		// 2.Validate Address
+		Address address = addressRepository.findById(order.getShippingAddressId())
+				.orElseThrow(() -> new ResourceNotFoundException(
+						"Shipping address not found with id " + order.getShippingAddressId()));
 
-        // 3️.Validate if the address belong to the Customer
-        boolean belongs = addressRepository.existsByIdAndCustomerId(order.getShippingAddressId(), order.getCustomerId());
-        if (!belongs) {
-            throw new BadRequestException("Shipping address does not belong to this customer");
-        }
+		// 3️.Validate if the address belong to the Customer
+		boolean belongs = addressRepository.existsByIdAndCustomerId(order.getShippingAddressId(),
+				order.getCustomerId());
+		if (!belongs) {
+			throw new BadRequestException("Shipping address does not belong to this customer");
+		}
 
-        // 4️.Validate items
-        if (order.getItems() == null || order.getItems().isEmpty()) {
-            throw new BadRequestException("Order must contain at least one item");
-        }
+		// 4️.Validate items
+		if (order.getItems() == null || order.getItems().isEmpty()) {
+			throw new BadRequestException("Order must contain at least one item");
+		}
 
-        BigDecimal total = BigDecimal.ZERO;
+		BigDecimal total = BigDecimal.ZERO;
 
-        // 5.Validate stock, product active, freeze unitPrice, calculate lineTotal
-        for (OrderItem item : order.getItems()) {
+		// 5.Validate stock, product active, freeze unitPrice, calculate lineTotal
+		for (OrderItem item : order.getItems()) {
 
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Product not found with id " + item.getProductId()));
+			Product product = productRepository.findById(item.getProductId()).orElseThrow(
+					() -> new ResourceNotFoundException("Product not found with id " + item.getProductId()));
 
-            if (!product.isActive()) {
-                throw new ConflictException("Product " + product.getName() + " is inactive");
-            }
+			if (!product.isActive()) {
+				throw new ConflictException("Product " + product.getName() + " is inactive");
+			}
 
-            if (product.getStock() < item.getQuantity()) {
-                throw new ConflictException("Insufficient stock for product " + product.getName());
-            }
+			if (product.getStock() < item.getQuantity()) {
+				throw new ConflictException("Insufficient stock for product " + product.getName());
+			}
 
-            // Freeze Price
-            item.setUnitPrice(product.getPrice());
+			// Freeze Price
+			item.setUnitPrice(product.getPrice());
 
-            // Calculate lineTotal
-            BigDecimal lineTotal = product.getPrice()
-                    .multiply(BigDecimal.valueOf(item.getQuantity()));
+			// Calculate lineTotal
+			BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
-            item.setLineTotal(lineTotal);
+			item.setLineTotal(lineTotal);
 
-            // Set Product name to return in the response dto
-            item.setProductName(product.getName());
+			// Set Product name to return in the response dto
+			item.setProductName(product.getName());
 
-            // Add to the total order amount
-            total = total.add(lineTotal);
+			// Add to the total order amount
+			total = total.add(lineTotal);
 
-            // Reduce stock
-            product.setStock(product.getStock() - item.getQuantity());
-            productRepository.save(product);
-        }
+			// Reduce stock
+			product.setStock(product.getStock() - item.getQuantity());
+			productRepository.save(product);
+		}
 
-        // 6️. Set total and initial state
-        order.setTotal(total);
-        order.setStatus(OrderStatus.CREATED);
-        order.setOrderDate(LocalDateTime.now());
+		// 6️. Set total and initial state
+		order.setTotal(total);
+		order.setStatus(OrderStatus.CREATED);
+		order.setOrderDate(LocalDateTime.now());
 
-        // 7️. Save
-        Order saved = orderRepository.save(order);
+		// 7️. Save
+		Order saved = orderRepository.save(order);
 
-        log.info("Order created id={}, total={}", saved.getId(), saved.getTotal());
-        return saved;
-    }
+		// Recalculate lineTotal because DB does not store that field
+		for (OrderItem item : saved.getItems()) {
+			BigDecimal lineTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+			item.setLineTotal(lineTotal);
+		}
 
-    
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Order> findAll(Long customerId,
-                               String fromDate,
-                               String toDate,
-                               String status,
-                               int page,
-                               int size) {
+		log.info("Order created id={}, total={}", saved.getId(), saved.getTotal());
+		return saved;
+	}
 
-        log.info("Listing orders with filters");
+	@Override
+	@Transactional(readOnly = true)
+	public Page<Order> findAll(Long customerId, String fromDate, String toDate, String status, int page, int size) {
 
-        return orderRepository.findAll(customerId, fromDate, toDate, status, page, size);
-    }
+		log.info("Listing orders with filters");
 
-   
-    @Override
-    @Transactional(readOnly = true)
-    public Order findById(Long id) {
+		return orderRepository.findAll(customerId, fromDate, toDate, status, page, size);
+	}
 
-        log.info("Finding order id={}", id);
+	@Override
+	@Transactional(readOnly = true)
+	public Order findById(Long id) {
 
-        return orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Order not found with id " + id));
-    }
+		log.info("Finding order id={}", id);
 
-    
-    @Override
-    public Order updateStatus(Long id, OrderStatus newStatus) {
+		return orderRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+	}
 
-        log.info("Updating order id={} -> {}", id, newStatus);
+	@Override
+	public Order updateStatus(Long id, OrderStatus newStatus) {
 
-        Order order = findById(id);
+		log.info("Updating order id={} -> {}", id, newStatus);
 
-        OrderStatus current = order.getStatus();
+		Order order = findById(id);
 
-        // Check valid transactions
-        switch (newStatus) {
+		OrderStatus current = order.getStatus();
 
-            case PAID:
-                if (current != OrderStatus.CREATED) {
-                    throw new ConflictException("Order can only move to PAID from CREATED");
-                }
-                break;
+		// Check valid transactions
+		switch (newStatus) {
 
-            case SHIPPED:
-                if (current != OrderStatus.PAID) {
-                    throw new ConflictException("Order can only move to SHIPPED from PAID");
-                }
-                break;
+		case PAID:
+			if (current != OrderStatus.CREATED) {
+				throw new ConflictException("Order can only move to PAID from CREATED");
+			}
+			break;
 
-            case CANCELLED:
-                if (current == OrderStatus.SHIPPED) {
-                    throw new ConflictException("Order cannot be cancelled after being shipped");
-                }
-                // rollback in the stock if the order status is cancelled if its previous status was not SHIPPED
-                restoreStock(order);
-                break;
+		case SHIPPED:
+			if (current != OrderStatus.PAID) {
+				throw new ConflictException("Order can only move to SHIPPED from PAID");
+			}
+			break;
 
-            default:
-                throw new BadRequestException("Invalid status");
-        }
+		case CANCELLED:
+			if (current == OrderStatus.SHIPPED) {
+				throw new ConflictException("Order cannot be cancelled after being shipped");
+			}
+			// rollback in the stock if the order status is cancelled if its previous status
+			// was not SHIPPED
+			restoreStock(order);
+			break;
 
-        order.setStatus(newStatus);
+		default:
+			throw new BadRequestException("Invalid status");
+		}
 
-        Order saved = orderRepository.save(order);
-        log.info("Order status updated for id={}", id);
-        return saved;
-    }
+		order.setStatus(newStatus);
 
-    
-    private void restoreStock(Order order) {
+		Order saved = orderRepository.save(order);
 
-        log.info("Restoring stock for order id={}", order.getId());
+		// Recalculate lineTotal because DB does not store that field
+		for (OrderItem item : saved.getItems()) {
+			BigDecimal lineTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+			item.setLineTotal(lineTotal);
+		}
 
-        for (OrderItem item : order.getItems()) {
+		log.info("Order status updated for id={}", id);
+		return saved;
+	}
 
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Product not found for restore stock"));
+	private void restoreStock(Order order) {
 
-            product.setStock(product.getStock() + item.getQuantity());
-            productRepository.save(product);
-        }
-    }
+		log.info("Restoring stock for order id={}", order.getId());
+
+		for (OrderItem item : order.getItems()) {
+
+			Product product = productRepository.findById(item.getProductId())
+					.orElseThrow(() -> new ResourceNotFoundException("Product not found for restore stock"));
+
+			product.setStock(product.getStock() + item.getQuantity());
+			productRepository.save(product);
+		}
+	}
 }
