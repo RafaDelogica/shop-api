@@ -3,6 +3,7 @@ package com.project.shop_api.infrastructure.persistence.repository.impl;
 import com.project.shop_api.domain.model.Customer;
 import com.project.shop_api.domain.repository.CustomerRepository;
 import com.project.shop_api.infrastructure.mapper.entity.CustomerEntityMapper;
+import com.project.shop_api.infrastructure.persistence.entity.AddressEntity;
 import com.project.shop_api.infrastructure.persistence.entity.CustomerEntity;
 import com.project.shop_api.infrastructure.persistence.repository.JpaCustomerRepository;
 import com.project.shop_api.infrastructure.persistence.specification.CustomerSpecification;
@@ -25,8 +26,17 @@ public class CustomerRepositoryImpl implements CustomerRepository {
 
     @Override
     public Customer save(Customer customer) {
+
         CustomerEntity entity = mapper.toEntity(customer);
+
+        if (entity.getAddresses() != null) {
+            for (AddressEntity address : entity.getAddresses()) {
+                address.setCustomer(entity);
+            }
+        }
+
         CustomerEntity saved = jpa.save(entity);
+
         return mapper.toModel(saved);
     }
 

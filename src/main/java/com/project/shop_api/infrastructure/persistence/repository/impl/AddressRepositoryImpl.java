@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import com.project.shop_api.domain.model.Address;
 import com.project.shop_api.domain.repository.AddressRepository;
 import com.project.shop_api.infrastructure.mapper.entity.AddressEntityMapper;
+import com.project.shop_api.infrastructure.persistence.entity.CustomerEntity;
+import com.project.shop_api.infrastructure.persistence.entity.AddressEntity;
 import com.project.shop_api.infrastructure.persistence.repository.JpaAddressRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,20 @@ public class AddressRepositoryImpl implements AddressRepository {
     @Override
     public boolean existsByIdAndCustomerId(Long addressId, Long customerId) {
         return jpa.existsByIdAndCustomerId(addressId, customerId);
+    }
+
+    @Override
+    public Address saveForCustomer(Long customerId, Address address) {
+
+        AddressEntity entityAddress = mapper.toEntity(address);
+
+        CustomerEntity customerEntity = new CustomerEntity();
+        customerEntity.setId(customerId);
+        entityAddress.setCustomer(customerEntity);
+
+        AddressEntity saved = jpa.save(entityAddress);
+
+        return mapper.toModel(saved);
     }
 
 }

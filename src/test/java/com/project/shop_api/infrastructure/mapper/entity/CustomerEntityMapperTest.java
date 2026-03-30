@@ -8,6 +8,7 @@ import com.project.shop_api.infrastructure.persistence.entity.AddressEntity;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,11 +24,8 @@ class CustomerEntityMapperTest {
         Customer domain = Customer.builder()
                 .id(1L)
                 .fullName("Rafa")
-                .email("r@test.com")
                 .phone("1234")
-                .addresses(List.of(
-                        Address.builder().id(99L).city("Madrid").postalCode("28001").build()
-                ))
+                .email("r@test.com")
                 .build();
 
         CustomerEntity entity = mapper.toEntity(domain);
@@ -35,7 +33,10 @@ class CustomerEntityMapperTest {
         assertEquals(1L, entity.getId());
         assertEquals("Rafa", entity.getFullName());
         assertEquals("r@test.com", entity.getEmail());
+        assertEquals("1234", entity.getPhone());
     }
+
+
 
     @Test
     void toModel_shouldMapCorrectly() {

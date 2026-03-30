@@ -26,28 +26,30 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final AddressRepository addressRepository;
 
-    // ============================================================
-    // CREATE CUSTOMER
-    // ============================================================
     @Override
+    @Transactional
     public Customer create(Customer customer) {
 
         log.info("Creating customer with email={}", customer.getEmail());
 
         if (customerRepository.existsEmail(customer.getEmail())) {
-            log.warn("Attempt to create duplicate email={}", customer.getEmail());
             throw new ConflictException("Email already exists: " + customer.getEmail());
         }
 
-        Customer created = customerRepository.save(customer);
+        if (customer.getAddresses() != null && !customer.getAddresses().isEmpty()) {
+            boolean first = true;
+            for (Address addr : customer.getAddresses()) {
+                addr.setIsDefault(first);
+                first = false;
+            }
+        }
 
-        log.info("Customer created with id={}", created.getId());
-        return created;
+        Customer saved = customerRepository.save(customer);
+        
+        log.info("Customer created id={}", saved.getId());
+        return saved;
     }
 
-    // ============================================================
-    // UPDATE CUSTOMER
-    // ============================================================
     @Override
     public Customer update(Long id, Customer customer) {
 
@@ -55,24 +57,22 @@ public class CustomerServiceImpl implements CustomerService {
 
         Customer existing = findById(id);
 
-        // Si cambia el email → comprobar duplicado
         if (!existing.getEmail().equals(customer.getEmail())
                 && customerRepository.existsEmail(customer.getEmail())) {
-
-            log.warn("Attempt to update with duplicate email={}", customer.getEmail());
             throw new ConflictException("Email already exists: " + customer.getEmail());
         }
 
         customer.setId(id);
+        customer.setAddresses(existing.getAddresses());
+        customer.setCreatedAt(existing.getCreatedAt());
+        customer.setUpdatedAt(existing.getUpdatedAt());
+
         Customer updated = customerRepository.save(customer);
 
         log.info("Customer updated id={}", id);
         return updated;
     }
 
-    // ============================================================
-    // FIND BY ID
-    // ============================================================
     @Override
     @Transactional(readOnly = true)
     public Customer findById(Long id) {
@@ -86,9 +86,6 @@ public class CustomerServiceImpl implements CustomerService {
                 });
     }
 
-    // ============================================================
-    // LIST PAGINATED + FILTER
-    // ============================================================
     @Override
     @Transactional(readOnly = true)
     public Page<Customer> findAll(String email, int page, int size) {
@@ -98,9 +95,6 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.findAll(email, page, size);
     }
 
-    // ============================================================
-    // DELETE
-    // ============================================================
     @Override
     public void delete(Long id) {
 
@@ -113,9 +107,6 @@ public class CustomerServiceImpl implements CustomerService {
         log.info("Customer deleted id={}", id);
     }
 
-    // ============================================================
-    // ADD ADDRESS
-    // ============================================================
     @Override
     public Customer addAddress(Long customerId, Address address) {
 
@@ -124,31 +115,25 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = findById(customerId);
 
         long count = addressRepository.countByCustomerId(customerId);
+        address.setIsDefault(count == 0);
 
-        // Primera dirección → default
-        if (count == 0) {
-            address.setIsDefault(true);
-        } else {
-            address.setIsDefault(false);
-        }
+        Address addressToSave = Address.builder()
+                .id(null)
+                .line1(address.getLine1())
+                .line2(address.getLine2())
+                .city(address.getCity())
+                .postalCode(address.getPostalCode())
+                .country(address.getCountry())
+                .isDefault(address.getIsDefault())
+                .build();
 
-        // Guardar address
-        Address savedAddress = addressRepository.save(address);
+        Address savedAddress = addressRepository.saveForCustomer(customerId, addressToSave);
 
-        // Añadir al customer
         customer.getAddresses().add(savedAddress);
 
-        Customer updated = customerRepository.save(customer);
-
-        log.info("Address added to customer id={} (addressId={})",
-                customerId, savedAddress.getId());
-
-        return updated;
+        return customerRepository.save(customer);
     }
 
-    // ============================================================
-    // MARK DEFAULT ADDRESS
-    // ============================================================
     @Override
     public Customer markDefault(Long customerId, Long addressId) {
 
@@ -156,13 +141,11 @@ public class CustomerServiceImpl implements CustomerService {
 
         Customer customer = findById(customerId);
 
-        // Validar que la address pertenece al customer
         if (!addressRepository.existsByIdAndCustomerId(addressId, customerId)) {
             log.warn("Address {} does not belong to customer {}", addressId, customerId);
             throw new ForbiddenException("The address does not belong to this customer");
         }
 
-        // Marcar todas las demás como false
         customer.getAddresses()
                 .forEach(addr -> addr.setIsDefault(addr.getId().equals(addressId)));
 

@@ -13,4 +13,6 @@ public interface AddressRepository {
     long countByCustomerId(Long customerId);
 
     boolean existsByIdAndCustomerId(Long addressId, Long customerId);
+    
+    Address saveForCustomer(Long customerId, Address address);
 }
